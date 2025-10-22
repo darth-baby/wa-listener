@@ -11,6 +11,12 @@ const TARGET_GROUP_IDS = process.env.TARGET_GROUP_IDS
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000/incoming';
 const CHROME_PATH = process.env.CHROME_PATH
 
+// Заменяем стандартный puppeteer на "усиленный"
+const puppeteer = require('puppeteer-extra');
+// Подключаем плагин для маскировки
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+
 if (TARGET_GROUP_IDS.length === 0) {
   console.warn('⚠️ Внимание: не указаны TARGET_GROUP_IDS. Бот будет слушать все группы.');
 } else {
@@ -51,17 +57,21 @@ setInterval(cleanupDatabase, 24 * 60 * 60 * 1000);
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: 'me' }),
   puppeteer: {
-        headless: false,
-        executablePath: CHROME_PATH,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
-    },
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
-    }
+    // ВАЖНО: Указываем puppeteer, который мы настроили выше
+    // Вместо того чтобы библиотека использовала свой собственный
+    puppeteer, 
+    headless: false, // Оставляем false для отладки, потом можно будет сменить на 'new' или true
+    executablePath: CHROME_PATH,
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+        // Можно добавить еще несколько "человечных" аргументов, но stealth-plugin уже делает многое
+    ]
+  },
+  webVersionCache: {
+      type: 'remote',
+      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+  }
 });
 
 client.on('qr', (qr) => {
